@@ -3,6 +3,9 @@ import time
 import network
 import socket
 import json
+import requests
+import json
+
 
 # --- CONFIGURAZIONE HARDWARE ---
 led_di_stato = machine.Pin(2, machine.Pin.OUT)
@@ -103,34 +106,22 @@ if conf:
     #in_pasto = False
     ultimo_agg = time.ticks_ms()
     grammi = 0.0
-    while True:
-        if time.ticks_diff(time.ticks_ms(), ultimo_agg) > 500:
-            #grammi = (get_clean_value(10) - offset) / SCALE
-            #if abs(grammi) < 2.0: grammi = 0.0
-            grammi +=1.0
-            riga_peso = f"<div><strong>Peso: {grammi:.1f} g</strong></div>"
-            
-            # Logica pasto
-            diff = peso_precedente - grammi
-            #if diff > 10.0 and not in_pasto:
-            #    web_print("<span style='color:red;'>[EVENTO] Inizio pasto!</span>")
-            #    in_pasto = True
-            #elif in_pasto and abs(diff) < 2.0:
-             #   web_print(f"<span style='color:green;'>[EVENTO] Fine pasto.</span>")
-             #   in_pasto = False
-            
-            peso_precedente = grammi
-            ultimo_agg = time.ticks_ms()
-
+    for i in [0, 1, 2, 3, 4, 5]:  # Simula 6 letture
+        #if time.ticks_diff(time.ticks_ms(), ultimo_agg) > 500:
+        dati_sensore = {
+        "sensore_id": "sensore_cucina_01",
+        "temperatura": 22.5 + i,  # Giusto per far variare il dato
+        "umidita": 45.2,
+        "timestamp": time.gmtime()
+    }
+    
         try:
-            conn, addr = server.accept()
-            html = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n"
-            html += '<html><head><meta http-equiv="refresh" content="2"></head>'
-            html += '<body style="background:#000;color:#0f0;font-family:monospace;">'
-            html += '<h2>Live Dog Tracker</h2><div style="border:1px solid #555;padding:10px;">'
-            for r in storico_log: html += r
-            html += "<br>" + riga_peso + "</div></body></html>"
-            conn.sendall(html.encode('utf-8'))
-            conn.close()
-        except: pass
-        time.sleep_ms(50)
+            # Invia la chiamata HTTP POST
+            risposta = requests.post(conf['server_url'], json=dati_sensore)
+            print(f"Lettura {i+1} inviata! Risposta server: {risposta.status_code}")
+        except Exception as e:
+            print(f"Errore durante l'invio: {e}")
+            
+        time.sleep(3) # Aspetta 3 secondi prima della prossima lettura
+
+print("Simulazione completata.")
