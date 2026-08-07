@@ -116,12 +116,20 @@ if conf:
     }
     
         try:
-            # Invia la chiamata HTTP POST
-            risposta = requests.post(conf['server_url'], json=dati_sensore)
+            # Definisci gli header con la chiave d'accesso letta dal config.json
+            headers = {
+                "Content-Type": "application/json",
+                "X-API-Key": conf['api_key']
+            }
+
+            # Invia la chiamata HTTP POST includendo gli headers
+            risposta = requests.post(conf['server_url'], json=dati_sensore, headers=headers)
             print(f"Lettura {i+1} inviata! Risposta server: {risposta.status_code}")
+            
+            # Chiudi la connessione della risposta (consigliato su MicroPython per liberare memoria)
+            risposta.close()
+
         except Exception as e:
             print(f"Errore durante l'invio: {e}")
             
-        time.sleep(3) # Aspetta 3 secondi prima della prossima lettura
-
 print("Simulazione completata.")
