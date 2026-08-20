@@ -6,6 +6,11 @@ import json
 import requests
 import json
 
+# Configura il tasto BOOT (GPIO 0) come ingresso con pull-up attivo
+boot_button = machine.Pin(0, machine.Pin.IN, machine.Pin.PULL_UP)
+
+# Associa l'interrupt al fronte di discesa (FALLING: da 1 a 0 quando si preme)
+boot_button.irq(trigger=machine.Pin.IRQ_FALLING, handler=lambda pin: calibrate(conf['known_weight'], pin))
 
 # --- CONFIGURAZIONE HARDWARE ---
 led_di_stato = machine.Pin(2, machine.Pin.OUT)
@@ -81,17 +86,26 @@ def get_clean_value(samples=15):
     trimmed = vals[2:-2]
     return sum(trimmed) / len(trimmed) if trimmed else 0
 
-def calibrate(known_weight_grams):
+def calibrate(known_weight_grams,pin):
     global SCALE, offset
-    #web_print("--- TARA (Svuota piatto) ---")
+    led_di_stato.value(0)
+    print("--- TARA (Svuota piatto) ---")
     time.sleep(3)
     offset = get_clean_value(40)
-    #web_print("--- CALIBRAZIONE (Metti peso) ---")
+    led_di_stato.value(1)
+    print("--- CALIBRAZIONE (Metti peso) ---")
     time.sleep(5)
     valore_con_peso = get_clean_value(40)
     SCALE = (valore_con_peso - offset) / known_weight_grams if (valore_con_peso - offset) != 0 else 1.0
-    #web_print("Calibrazione OK.")
-
+    print("Calibrazione OK.")
+    led_di_stato.value(0)
+    time.sleep(2)
+    led_di_stato.value(1)
+    time.sleep(2)
+    led_di_stato.value(0)
+    time.sleep(2)
+    led_di_stato.value(1)
+    time.sleep(5)
 # --- AVVIO ---
 conf = carica_configurazione()
 if conf:
@@ -112,28 +126,29 @@ if conf:
         if time.ticks_diff(time.ticks_ms(), ultimo_agg) > 5000:
             print("Lettura peso...")
             grammi = (get_clean_value(10) - offset) / SCALE
-            print(f"Peso attuale: {grammi:.2f} grammi")
-            if abs(grammi) < 2.0: grammi = 0.0
+            print(f"Peso attuale: {grammi:.2f} grammi") 
+            #if abs(grammi) < 2.0: grammi = 0.0
             #evento Ricarica
-            if grammi-100>peso_precedente:
+            if grammi<-100:
+                print("ciotola rimossa")   
+            elif grammi-100>peso_precedente:
                 evento=True
                 print(f"Ricarica: {grammi} grammi")
-                evento = {
-                "timestamp": "{}-{}-{} {}:{}:{}".format(*time.gmtime()[:6]),
-                "tipo": "Ricarica",
+                evento = {"tipo": "Ricarica",
                 "grammi_rimasti_in_ciotola": grammi
                 }
-            # # Logica pasto
-            # diff = peso_precedente - grammi
-            # #if diff > 10.0 and not in_pasto:
-            # #    web_print("<span style='color:red;'>[EVENTO] Inizio pasto!</span>")
-            # #    in_pasto = True
-            # #elif in_pasto and abs(diff) < 2.0:
-            #     #   web_print(f"<span style='color:green;'>[EVENTO] Fine pasto.</span>")
-            #     #   in_pasto = False
-            
+            # Logica pasto
+            elif peso_precedente-grammi > 10.0:
+                evento=True
+                print(f"Pasto: {peso_precedente-grammi} grammi")
+                evento = {
+                "tipo": "Pasto",
+                "grammi_rimasti_in_ciotola": grammi,
+                "grammi_consumati": peso_precedente-grammi
+                }
+            if grammi >= -10:
+                peso_precedente = grammi
             peso_precedente = grammi
-
             ultimo_agg = time.ticks_ms()  
         if evento:
             try:
@@ -155,5 +170,5 @@ if conf:
                 print(f"Errore durante l'invio: {e}")
 
             evento=False
-            
+        time.sleep(0.1)        
 print("Simulazione completata.")
