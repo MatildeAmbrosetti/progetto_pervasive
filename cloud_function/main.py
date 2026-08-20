@@ -41,7 +41,7 @@ def ricevi_dati_sensore(request):
 
         # 3. Scrivi il dato su Firestore nella collezione "letture_sensore"
         # .add() genera automaticamente un ID univoco per ogni lettura
-        db.collection('letturesensore').add(request_json)
+        db.collection('eventi').add(request_json)
         
         return ('Dato salvato con successo!', 200, headers)
 
