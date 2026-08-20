@@ -96,7 +96,7 @@ def calibrate(known_weight_grams):
 conf = carica_configurazione()
 if conf:
     ip_address = avvia_wifi(conf['wifi_ssid'], conf['wifi_password'])
-    
+    evento=False
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('', 80))
     server.listen(5)
@@ -109,15 +109,17 @@ if conf:
     ultimo_agg = time.ticks_ms()
     grammi = 0.0
     while True:
-        if time.ticks_diff(time.ticks_ms(), ultimo_agg) > 500:
+        if time.ticks_diff(time.ticks_ms(), ultimo_agg) > 5000:
+            print("Lettura peso...")
             grammi = (get_clean_value(10) - offset) / SCALE
+            print(f"Peso attuale: {grammi:.2f} grammi")
             if abs(grammi) < 2.0: grammi = 0.0
             #evento Ricarica
             if grammi-100>peso_precedente:
                 evento=True
-                print(f"Ricarica: {grammi-peso_precedente} grammi")
+                print(f"Ricarica: {grammi} grammi")
                 evento = {
-                "timestamp": time.gmtime(),
+                "timestamp": "{}-{}-{} {}:{}:{}".format(*time.gmtime()[:6]),
                 "tipo": "Ricarica",
                 "grammi_rimasti_in_ciotola": grammi
                 }
@@ -130,11 +132,12 @@ if conf:
             #     #   web_print(f"<span style='color:green;'>[EVENTO] Fine pasto.</span>")
             #     #   in_pasto = False
             
-            # peso_precedente = grammi
+            peso_precedente = grammi
 
             ultimo_agg = time.ticks_ms()  
         if evento:
             try:
+                #print(f"Invio evento al server: {evento}")
                 # Definisci gli header con la chiave d'accesso letta dal config.json
                 headers = {
                     "Content-Type": "application/json",

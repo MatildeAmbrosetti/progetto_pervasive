@@ -3,7 +3,7 @@ from google.cloud import firestore
 import os
 
 # Inizializza il client Firestore (si collega automaticamente al DB del tuo progetto)
-db = firestore.Client()
+db = firestore.Client(database='dati')
 #estrae la password dalla configurazione della cloud function 
 API_SECRET_KEY = os.environ.get('API_SECRET_KEY')
 
