@@ -3,7 +3,11 @@ from google.cloud import firestore
 import os
 
 # Inizializza il client Firestore (si collega automaticamente al DB del tuo progetto)
-db = firestore.Client(database='dati')
+PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT') or os.environ.get('GCP_PROJECT')
+DATABASE_ID = os.environ.get('FIRESTORE_DATABASE', 'dati')
+
+# Inizializza il client
+db = firestore.Client(project=PROJECT_ID, database=DATABASE_ID)
 #estrae la password dalla configurazione della cloud function 
 API_SECRET_KEY = os.environ.get('API_SECRET_KEY')
 
