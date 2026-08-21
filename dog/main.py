@@ -103,6 +103,7 @@ conf = carica_configurazione()
 if conf:
     print("Configurazione caricata correttamente.")
     ip_address = avvia_wifi(conf['wifi_ssid'], conf['wifi_password'])
+    evento_tag=False
     evento=False
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server.bind(('', 80))
@@ -126,27 +127,28 @@ if conf:
             if grammi<-10:
                 print("ciotola rimossa")   
             elif grammi-peso_precedente>10:
-                evento=True
+                evento_tag=True
                 print(f"Ricarica: {grammi} grammi")
                 evento = {"tipo": "Ricarica",
                 #"grammi": grammi,
-                "grammi_delta": grammi-peso_precedente
+                "grammi_delta": round(grammi-peso_precedente)
 
                 }
             # Logica pasto
             elif peso_precedente-grammi > 10.0:
-                evento=True
+                evento_tag=True
                 print(f"Pasto: {peso_precedente-grammi} grammi")
                 evento = {
                 "tipo": "Pasto",
                 #"grammi": grammi,
-                "grammi_delta": peso_precedente-grammi
+                "grammi_delta": round(peso_precedente-grammi)
                 }
             if grammi >= -10:
                 peso_precedente = grammi
             #peso_precedente = grammi
             ultimo_agg = time.ticks_ms()  
-        if evento:
+        if evento_tag:
+
             try:
                 #print(f"Invio evento al server: {evento}")
                 # Definisci gli header con la chiave d'accesso letta dal config.json
@@ -157,7 +159,7 @@ if conf:
 
                 # Invia la chiamata HTTP POST includendo gli headers
                 risposta = requests.post(conf['server_url'], json=evento, headers=headers)
-                #print(f"Lettura {i+1} inviata! Risposta server: {risposta.status_code}")
+                
                 
                 # Chiudi la connessione della risposta (consigliato su MicroPython per liberare memoria)
                 risposta.close()
@@ -165,6 +167,6 @@ if conf:
             except Exception as e:
                 print(f"Errore durante l'invio: {e}")
 
-            evento=False
+            evento_tag=False
                 
 # print("Simulazione completata.")
