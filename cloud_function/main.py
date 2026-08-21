@@ -43,7 +43,7 @@ def ricevi_dati_sensore(request):
         # 2. (Opzionale) Aggiungiamo un timestamp del server per sicurezza
 
         request_json['ricevuto_il'] = firestore.SERVER_TIMESTAMP
-        oggi_str = datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d')
+        oggi_str = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d')
 
         # 3. Scrivi il dato su Firestore nella collezione "letture_sensore"
         # .add() genera automaticamente un ID univoco per ogni lettura
