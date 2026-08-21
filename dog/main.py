@@ -111,62 +111,91 @@ if conf:
     server.setblocking(False)
 
     calibrate(conf['known_weight'])
+    # --- PARAMETRI DI CAMPIONAMENTO ---
+    SOGLIA_MOVIMENTO = 5.0      # Grammi di variazione per rilevare attività
+    SOGLIA_EVENTO = 10.0        # Grammi minimi per considerare Pasto/Ricarica
+    TEMPO_STABILITA_MS = 3000   # Tempo in ms in cui il peso deve stare fermo per validare
 
-    peso_precedente = 0.0
-    ultimo_agg = time.ticks_ms()
-    grammi = 0.0
+    peso_stabile = 0.0
+    peso_istantaneo=0.0
+    stato_bilancia = "STAZIONARIO"
+    inizio_stabilizzazione = time.ticks_ms()
+    ultimo_campione_time = time.ticks_ms()
+    lettura_precedente_temp=0.0
     while True:
+        ora = time.ticks_ms()
         
-        if time.ticks_diff(time.ticks_ms(), ultimo_agg) > 10000:
+        # Campionamento frequente ogni 300ms
+        if time.ticks_diff(ora, ultimo_campione_time) >= 300:
+            ultimo_campione_time = ora
             
-            print("Lettura peso...")
-            grammi =( (get_clean_value(10) - offset) / SCALE )- 249
-            print(f"Peso attuale: {grammi:.2f} grammi") 
-            #if abs(grammi) < 2.0: grammi = 0.0
-            #evento Ricarica
-            if grammi<-10:
-                print("ciotola rimossa")   
-            elif grammi-peso_precedente>10:
-                evento_tag=True
-                print(f"Ricarica: {grammi} grammi")
-                evento = {"tipo": "Ricarica",
-                #"grammi": grammi,
-                "grammi_delta": round(grammi-peso_precedente)
+            # Lettura rapida (3 campioni per non bloccare troppo la CPU)
+            peso_istantaneo = ((get_clean_value() - offset) / SCALE) - 249
+            print("peso_istantaneo", peso_istantaneo)
+            # 1. Rilevamento rimozione ciotola
+            if peso_istantaneo < -30:
+                if stato_bilancia != "CIOTOLA_RIMOSSA":
+                    print("Ciotola rimossa")
+                    stato_bilancia = "CIOTOLA_RIMOSSA"
+                continue
+            elif stato_bilancia == "CIOTOLA_RIMOSSA" and peso_istantaneo >= -10:
+                print("Ciotola riposizionata")
+                delta_riposizionamento = peso_istantaneo - peso_stabile
+            
+                if delta_riposizionamento > SOGLIA_EVENTO: # Maggior del peso precedente di oltre 10g
+                    print("Rilevato cibo aggiunto durante la rimozione della ciotola!")
+                    stato_bilancia = "IN_ATTIVITÀ"
+                    inizio_stabilizzazione = ora
+                else:
+                    # Peso invariato o differenza inferiore a 10g: nessun evento
+                    peso_stabile = peso_istantaneo
+                    stato_bilancia = "STAZIONARIO"
+                continue
 
-                }
-            # Logica pasto
-            elif peso_precedente-grammi > 10.0:
-                evento_tag=True
-                print(f"Pasto: {peso_precedente-grammi} grammi")
-                evento = {
-                "tipo": "Pasto",
-                #"grammi": grammi,
-                "grammi_delta": round(peso_precedente-grammi)
-                }
-            if grammi >= -10:
-                peso_precedente = grammi
-            #peso_precedente = grammi
-            ultimo_agg = time.ticks_ms()  
-        if evento_tag:
-
-            try:
-                #print(f"Invio evento al server: {evento}")
-                # Definisci gli header con la chiave d'accesso letta dal config.json
-                headers = {
-                    "Content-Type": "application/json",
-                    "X-API-Key": conf['api_key']
-                }
-
-                # Invia la chiamata HTTP POST includendo gli headers
-                risposta = requests.post(conf['server_url'], json=evento, headers=headers)
-                
-                
-                # Chiudi la connessione della risposta (consigliato su MicroPython per liberare memoria)
-                risposta.close()
-
-            except Exception as e:
-                print(f"Errore durante l'invio: {e}")
-
-            evento_tag=False
-                
-# print("Simulazione completata.")
+            # 2. Controllo variazione rispetto al peso stabile memorizzato
+            delta_istantaneo = peso_istantaneo - peso_stabile
+            
+            if stato_bilancia == "STAZIONARIO":
+                if abs(delta_istantaneo) > SOGLIA_MOVIMENTO:
+                    print("peso_istantaneo", peso_istantaneo)
+                    print("peso_stabile",peso_stabile)
+                    print("Attività rilevata (cane alla ciotola o ricarica)...")
+                    stato_bilancia = "IN_ATTIVITÀ"
+                    
+            elif stato_bilancia == "IN_ATTIVITÀ":
+                print("peso_istantaneo", peso_istantaneo)
+                print("peso_stabile",peso_stabile)
+                # Verifichiamo se il peso si sta ri-stabilizzando
+                if abs(peso_istantaneo - lettura_precedente_temp) < 2.0:
+                    print("peso_istantaneo", peso_istantaneo)
+                    print("peso_stabile",peso_stabile)
+                    if time.ticks_diff(ora, inizio_stabilizzazione) > TEMPO_STABILITA_MS:
+                        # Peso stabilizzato! Calcoliamo l'evento
+                        delta_totale = peso_istantaneo - peso_stabile
+                        
+                        evento = None
+                        if delta_totale < -SOGLIA_EVENTO:
+                            print("pasto")
+                            evento = {"tipo": "Pasto", "grammi_delta": round(abs(delta_totale))}
+                        elif delta_totale > SOGLIA_EVENTO:
+                            evento = {"tipo": "Ricarica", "grammi_delta": round(delta_totale)}
+                            print("ricarica")
+                        
+                        if evento:
+                            print(f"Evento registrato: {evento}")
+                            try:
+                                headers = {"Content-Type": "application/json", "X-API-Key": conf['api_key']}
+                                risposta = requests.post(conf['server_url'], json=evento, headers=headers)
+                                risposta.close()
+                            except Exception as e:
+                                print(f"Errore invio: {e}")
+                                
+                        # Aggiorniamo il nuovo punto zero/stabile
+                        peso_stabile = peso_istantaneo
+                        stato_bilancia = "STAZIONARIO"
+                else:
+                    # Ancora in movimento, reset del timer di stabilità
+                    inizio_stabilizzazione = ora
+                    
+            lettura_precedente_temp = peso_istantaneo
+        time.sleep_ms(50) # Piccola pausa per risparmiare CPU
