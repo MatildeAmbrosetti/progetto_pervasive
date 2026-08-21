@@ -13,10 +13,7 @@ def carica_configurazione():
         print("Errore nel caricamento della configurazione.")
         return None
         
-flag_calibrazione = False 
-def gestore_irq(pin):
-    global flag_calibrazione
-    flag_calibrazione = True  # Segnala solo che il tasto è stato premuto
+
 
 # --- CONFIGURAZIONE HARDWARE ---
 led_di_stato = machine.Pin(2, machine.Pin.OUT)
