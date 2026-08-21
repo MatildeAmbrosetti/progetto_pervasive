@@ -1,6 +1,7 @@
 import functions_framework
 from google.cloud import firestore
 import os
+import datetime
 
 # Inizializza il client Firestore (si collega automaticamente al DB del tuo progetto)
 PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT') or os.environ.get('GCP_PROJECT')
@@ -48,7 +49,6 @@ def ricevi_dati_sensore(request):
         db.collection('eventi').add(request_json)
         
         return ('Dato salvato con successo!', 200, headers)
-
     except Exception as e:
         print(f"Errore durante il salvataggio: {e}")
         return (f"Errore interno: {e}", 500, headers)
