@@ -129,46 +129,39 @@ if conf:
         if time.ticks_diff(ora, ultimo_campione_time) >= 300:
             ultimo_campione_time = ora
             
-            # Lettura rapida (3 campioni per non bloccare troppo la CPU)
+            # Lettura rapida
             peso_istantaneo = ((get_clean_value() - offset) / SCALE) - 249
-            print("peso_istantaneo", peso_istantaneo)
+            print("peso_istantaneo:", peso_istantaneo)
+            
             # 1. Rilevamento rimozione ciotola
             if peso_istantaneo < -30:
                 if stato_bilancia != "CIOTOLA_RIMOSSA":
                     print("Ciotola rimossa")
                     stato_bilancia = "CIOTOLA_RIMOSSA"
                 continue
+                
+            # 2. Riposizionamento ciotola
             elif stato_bilancia == "CIOTOLA_RIMOSSA" and peso_istantaneo >= -10:
-                print("Ciotola riposizionata")
-                delta_riposizionamento = peso_istantaneo - peso_stabile
-            
-                if delta_riposizionamento > SOGLIA_EVENTO: # Maggior del peso precedente di oltre 10g
-                    print("Rilevato cibo aggiunto durante la rimozione della ciotola!")
-                    stato_bilancia = "IN_ATTIVITÀ"
-                    inizio_stabilizzazione = ora
-                else:
-                    # Peso invariato o differenza inferiore a 10g: nessun evento
-                    peso_stabile = peso_istantaneo
-                    stato_bilancia = "STAZIONARIO"
+                # NON salviamo subito il peso qui per evitare di catturare il valore parziale della mano.
+                # Mandiamo la bilancia in IN_ATTIVITÀ per farla stabilizzare correttamente.
+                print("Ciotola riposizionata: in attesa di stabilizzazione...")
+                stato_bilancia = "IN_ATTIVITÀ"
+                inizio_stabilizzazione = ora
+                lettura_precedente_temp = peso_istantaneo
                 continue
 
-            # 2. Controllo variazione rispetto al peso stabile memorizzato
+            # 3. Controllo variazione rispetto al peso stabile memorizzato
             delta_istantaneo = peso_istantaneo - peso_stabile
             
             if stato_bilancia == "STAZIONARIO":
                 if abs(delta_istantaneo) > SOGLIA_MOVIMENTO:
-                    print("peso_istantaneo", peso_istantaneo)
-                    print("peso_stabile",peso_stabile)
                     print("Attività rilevata (cane alla ciotola o ricarica)...")
                     stato_bilancia = "IN_ATTIVITÀ"
+                    inizio_stabilizzazione = ora
                     
             elif stato_bilancia == "IN_ATTIVITÀ":
-                print("peso_istantaneo", peso_istantaneo)
-                print("peso_stabile",peso_stabile)
                 # Verifichiamo se il peso si sta ri-stabilizzando
                 if abs(peso_istantaneo - lettura_precedente_temp) < 2.0:
-                    print("peso_istantaneo", peso_istantaneo)
-                    print("peso_stabile",peso_stabile)
                     if time.ticks_diff(ora, inizio_stabilizzazione) > TEMPO_STABILITA_MS:
                         # Peso stabilizzato! Calcoliamo l'evento
                         delta_totale = peso_istantaneo - peso_stabile
@@ -178,8 +171,8 @@ if conf:
                             print("pasto")
                             evento = {"tipo": "Pasto", "grammi_delta": round(abs(delta_totale))}
                         elif delta_totale > SOGLIA_EVENTO:
-                            evento = {"tipo": "Ricarica", "grammi_delta": round(delta_totale)}
                             print("ricarica")
+                            evento = {"tipo": "Ricarica", "grammi_delta": round(delta_totale)}
                         
                         if evento:
                             print(f"Evento registrato: {evento}")
@@ -194,8 +187,9 @@ if conf:
                         peso_stabile = peso_istantaneo
                         stato_bilancia = "STAZIONARIO"
                 else:
-                    # Ancora in movimento, reset del timer di stabilità
+                    # Se il peso varia ancora (es. la mano sta ancora muovendo la ciotola), si resetta il timer
                     inizio_stabilizzazione = ora
                     
             lettura_precedente_temp = peso_istantaneo
+            
         time.sleep_ms(50) # Piccola pausa per risparmiare CPU
