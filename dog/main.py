@@ -13,17 +13,10 @@ def carica_configurazione():
         print("Errore nel caricamento della configurazione.")
         return None
         
-
-# Configura il tasto BOOT (GPIO 0) come ingresso con pull-up attivo
-#boot_button = machine.Pin(0, machine.Pin.IN, machine.Pin.PULL_UP)
-
-#flag_calibrazione = False 
-#def gestore_irq(pin):
-#    global flag_calibrazione
-#    flag_calibrazione = True  # Segnala solo che il tasto è stato premuto
-
-# Associa l'interrupt al fronte di discesa (FALLING: da 1 a 0 quando si preme)
-#boot_button.irq(trigger=machine.Pin.IRQ_FALLING, handler=gestore_irq)
+flag_calibrazione = False 
+def gestore_irq(pin):
+    global flag_calibrazione
+    flag_calibrazione = True  # Segnala solo che il tasto è stato premuto
 
 # --- CONFIGURAZIONE HARDWARE ---
 led_di_stato = machine.Pin(2, machine.Pin.OUT)
@@ -32,17 +25,10 @@ dout = machine.Pin(13, machine.Pin.IN)
 #clock
 pdsck = machine.Pin(12, machine.Pin.OUT, value=0)
 
-SCALE = -458.9700  
+SCALE = 1 
 offset = 0
 #storico_log = []
 
-
-
-#def web_print(messaggio):
-#    print(messaggio)
-#    riga = f"<div>[{time.ticks_ms() // 1000}s] {messaggio}</div>"
-#    storico_log.append(riga)
-#    if len(storico_log) > 15: storico_log.pop(0)
 
 def avvia_wifi(ssid, password):
     wlan = network.WLAN(network.STA_IF)
@@ -119,71 +105,69 @@ print("Avvio dello script in corso...")
 conf = carica_configurazione()
 if conf:
     print("Configurazione caricata correttamente.")
-#     ip_address = avvia_wifi(conf['wifi_ssid'], conf['wifi_password'])
-#     evento=False
-#     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#     server.bind(('', 80))
-#     server.listen(5)
-#     server.setblocking(False)
+    ip_address = avvia_wifi(conf['wifi_ssid'], conf['wifi_password'])
+    evento=False
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.bind(('', 80))
+    server.listen(5)
+    server.setblocking(False)
 
-#     #calibrate(conf['known_weight'])
+    calibrate(conf['known_weight'])
 
-#     peso_precedente = 0.0
-#     #in_pasto = False
-#     ultimo_agg = time.ticks_ms()
-#     grammi = 0.0
-#     while True:
-#         if flag_calibrazione:
-#             print("Richiesta calibrazione ricevuta!")
-#             calibrate(conf['known_weight'])
-#             flag_calibrazione = False
+    peso_precedente = 0.0
+    ultimo_agg = time.ticks_ms()
+    grammi = 0.0
+    while True:
+        
+        if time.ticks_diff(time.ticks_ms(), ultimo_agg) > 10000:
+            
+            print("Lettura peso...")
+            grammi =( (get_clean_value(10) - offset) / SCALE )- 272
+            print(f"Peso attuale: {grammi:.2f} grammi") 
+            #if abs(grammi) < 2.0: grammi = 0.0
+            #evento Ricarica
+            if grammi<-100:
+                print("ciotola rimossa")   
+            elif grammi-10>peso_precedente:
+                evento=True
+                print(f"Ricarica: {grammi} grammi")
+                evento = {"tipo": "Ricarica",
+                #"grammi": grammi,
+                "grammi_delta": grammi-peso_precedente
 
-#         if time.ticks_diff(time.ticks_ms(), ultimo_agg) > 600000:
-#             print("Lettura peso...")
-#             grammi = (get_clean_value(10) - offset) / SCALE
-#             print(f"Peso attuale: {grammi:.2f} grammi") 
-#             #if abs(grammi) < 2.0: grammi = 0.0
-#             #evento Ricarica
-#             if grammi<-100:
-#                 print("ciotola rimossa")   
-#             elif grammi-100>peso_precedente:
-#                 evento=True
-#                 print(f"Ricarica: {grammi} grammi")
-#                 evento = {"tipo": "Ricarica",
-#                 "grammi_rimasti_in_ciotola": grammi
-#                 }
-#             # Logica pasto
-#             elif peso_precedente-grammi > 10.0:
-#                 evento=True
-#                 print(f"Pasto: {peso_precedente-grammi} grammi")
-#                 evento = {
-#                 "tipo": "Pasto",
-#                 "grammi_rimasti_in_ciotola": grammi,
-#                 "grammi_consumati": peso_precedente-grammi
-#                 }
-#             if grammi >= -10:
-#                 peso_precedente = grammi
-#             peso_precedente = grammi
-#             ultimo_agg = time.ticks_ms()  
-#         # if evento:
-#         #     try:
-#         #         #print(f"Invio evento al server: {evento}")
-#         #         # Definisci gli header con la chiave d'accesso letta dal config.json
-#         #         headers = {
-#         #             "Content-Type": "application/json",
-#         #             "X-API-Key": conf['api_key']
-#         #         }
+                }
+            # Logica pasto
+            elif peso_precedente-grammi > 10.0:
+                evento=True
+                print(f"Pasto: {peso_precedente-grammi} grammi")
+                evento = {
+                "tipo": "Pasto",
+                #"grammi": grammi,
+                "grammi_delta": peso_precedente-grammi
+                }
+            if grammi >= -10:
+                peso_precedente = grammi
+            peso_precedente = grammi
+            ultimo_agg = time.ticks_ms()  
+        if evento:
+            try:
+                #print(f"Invio evento al server: {evento}")
+                # Definisci gli header con la chiave d'accesso letta dal config.json
+                headers = {
+                    "Content-Type": "application/json",
+                    "X-API-Key": conf['api_key']
+                }
 
-#         #         # Invia la chiamata HTTP POST includendo gli headers
-#         #         risposta = requests.post(conf['server_url'], json=evento, headers=headers)
-#         #         #print(f"Lettura {i+1} inviata! Risposta server: {risposta.status_code}")
+                # Invia la chiamata HTTP POST includendo gli headers
+                risposta = requests.post(conf['server_url'], json=evento, headers=headers)
+                #print(f"Lettura {i+1} inviata! Risposta server: {risposta.status_code}")
                 
-#         #         # Chiudi la connessione della risposta (consigliato su MicroPython per liberare memoria)
-#         #         risposta.close()
+                # Chiudi la connessione della risposta (consigliato su MicroPython per liberare memoria)
+                risposta.close()
 
-#         #     except Exception as e:
-#         #         print(f"Errore durante l'invio: {e}")
+            except Exception as e:
+                print(f"Errore durante l'invio: {e}")
 
-#             evento=False
-#         time.sleep(0.1)        
+            evento=False
+                
 # print("Simulazione completata.")
