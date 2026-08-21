@@ -119,13 +119,13 @@ if conf:
         if time.ticks_diff(time.ticks_ms(), ultimo_agg) > 10000:
             
             print("Lettura peso...")
-            grammi =( (get_clean_value(10) - offset) / SCALE )- 336
+            grammi =( (get_clean_value(10) - offset) / SCALE )- 249
             print(f"Peso attuale: {grammi:.2f} grammi") 
             #if abs(grammi) < 2.0: grammi = 0.0
             #evento Ricarica
             if grammi<-10:
                 print("ciotola rimossa")   
-            elif grammi-10>peso_precedente:
+            elif grammi-peso_precedente>10:
                 evento=True
                 print(f"Ricarica: {grammi} grammi")
                 evento = {"tipo": "Ricarica",
@@ -144,7 +144,7 @@ if conf:
                 }
             if grammi >= -10:
                 peso_precedente = grammi
-            peso_precedente = grammi
+            #peso_precedente = grammi
             ultimo_agg = time.ticks_ms()  
         if evento:
             try:
