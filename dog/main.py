@@ -150,24 +150,24 @@ if conf:
                 peso_precedente = grammi
             peso_precedente = grammi
             ultimo_agg = time.ticks_ms()  
-        if evento:
-            try:
-                #print(f"Invio evento al server: {evento}")
-                # Definisci gli header con la chiave d'accesso letta dal config.json
-                headers = {
-                    "Content-Type": "application/json",
-                    "X-API-Key": conf['api_key']
-                }
+        # if evento:
+        #     try:
+        #         #print(f"Invio evento al server: {evento}")
+        #         # Definisci gli header con la chiave d'accesso letta dal config.json
+        #         headers = {
+        #             "Content-Type": "application/json",
+        #             "X-API-Key": conf['api_key']
+        #         }
 
-                # Invia la chiamata HTTP POST includendo gli headers
-                risposta = requests.post(conf['server_url'], json=evento, headers=headers)
-                #print(f"Lettura {i+1} inviata! Risposta server: {risposta.status_code}")
+        #         # Invia la chiamata HTTP POST includendo gli headers
+        #         risposta = requests.post(conf['server_url'], json=evento, headers=headers)
+        #         #print(f"Lettura {i+1} inviata! Risposta server: {risposta.status_code}")
                 
-                # Chiudi la connessione della risposta (consigliato su MicroPython per liberare memoria)
-                risposta.close()
+        #         # Chiudi la connessione della risposta (consigliato su MicroPython per liberare memoria)
+        #         risposta.close()
 
-            except Exception as e:
-                print(f"Errore durante l'invio: {e}")
+        #     except Exception as e:
+        #         print(f"Errore durante l'invio: {e}")
 
             evento=False
         time.sleep(0.1)        
