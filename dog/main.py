@@ -4,13 +4,26 @@ import network
 import socket
 import json
 import requests
-import json
+
+def carica_configurazione():
+    try:
+        with open('config.json', 'r') as f:
+            return json.load(f)
+    except:
+        print("Errore nel caricamento della configurazione.")
+        return None
+        
 
 # Configura il tasto BOOT (GPIO 0) come ingresso con pull-up attivo
-boot_button = machine.Pin(0, machine.Pin.IN, machine.Pin.PULL_UP)
+#boot_button = machine.Pin(0, machine.Pin.IN, machine.Pin.PULL_UP)
+
+#flag_calibrazione = False 
+#def gestore_irq(pin):
+#    global flag_calibrazione
+#    flag_calibrazione = True  # Segnala solo che il tasto è stato premuto
 
 # Associa l'interrupt al fronte di discesa (FALLING: da 1 a 0 quando si preme)
-boot_button.irq(trigger=machine.Pin.IRQ_FALLING, handler=lambda pin: calibrate(conf['known_weight'], pin))
+#boot_button.irq(trigger=machine.Pin.IRQ_FALLING, handler=gestore_irq)
 
 # --- CONFIGURAZIONE HARDWARE ---
 led_di_stato = machine.Pin(2, machine.Pin.OUT)
@@ -23,12 +36,7 @@ SCALE = -458.9700
 offset = 0
 #storico_log = []
 
-def carica_configurazione():
-    try:
-        with open('config.json', 'r') as f:
-            return json.load(f)
-    except:
-        return None
+
 
 #def web_print(messaggio):
 #    print(messaggio)
@@ -86,7 +94,7 @@ def get_clean_value(samples=15):
     trimmed = vals[2:-2]
     return sum(trimmed) / len(trimmed) if trimmed else 0
 
-def calibrate(known_weight_grams,pin):
+def calibrate(known_weight_grams):
     global SCALE, offset
     led_di_stato.value(0)
     print("--- TARA (Svuota piatto) ---")
@@ -107,68 +115,75 @@ def calibrate(known_weight_grams,pin):
     led_di_stato.value(1)
     time.sleep(5)
 # --- AVVIO ---
+print("Avvio dello script in corso...")
 conf = carica_configurazione()
 if conf:
-    ip_address = avvia_wifi(conf['wifi_ssid'], conf['wifi_password'])
-    evento=False
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('', 80))
-    server.listen(5)
-    server.setblocking(False)
+    print("Configurazione caricata correttamente.")
+#     ip_address = avvia_wifi(conf['wifi_ssid'], conf['wifi_password'])
+#     evento=False
+#     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#     server.bind(('', 80))
+#     server.listen(5)
+#     server.setblocking(False)
 
-    #calibrate(conf['known_weight'])
+#     #calibrate(conf['known_weight'])
 
-    peso_precedente = 0.0
-    #in_pasto = False
-    ultimo_agg = time.ticks_ms()
-    grammi = 0.0
-    while True:
-        if time.ticks_diff(time.ticks_ms(), ultimo_agg) > 5000:
-            print("Lettura peso...")
-            grammi = (get_clean_value(10) - offset) / SCALE
-            print(f"Peso attuale: {grammi:.2f} grammi") 
-            #if abs(grammi) < 2.0: grammi = 0.0
-            #evento Ricarica
-            if grammi<-100:
-                print("ciotola rimossa")   
-            elif grammi-100>peso_precedente:
-                evento=True
-                print(f"Ricarica: {grammi} grammi")
-                evento = {"tipo": "Ricarica",
-                "grammi_rimasti_in_ciotola": grammi
-                }
-            # Logica pasto
-            elif peso_precedente-grammi > 10.0:
-                evento=True
-                print(f"Pasto: {peso_precedente-grammi} grammi")
-                evento = {
-                "tipo": "Pasto",
-                "grammi_rimasti_in_ciotola": grammi,
-                "grammi_consumati": peso_precedente-grammi
-                }
-            if grammi >= -10:
-                peso_precedente = grammi
-            peso_precedente = grammi
-            ultimo_agg = time.ticks_ms()  
-        # if evento:
-        #     try:
-        #         #print(f"Invio evento al server: {evento}")
-        #         # Definisci gli header con la chiave d'accesso letta dal config.json
-        #         headers = {
-        #             "Content-Type": "application/json",
-        #             "X-API-Key": conf['api_key']
-        #         }
+#     peso_precedente = 0.0
+#     #in_pasto = False
+#     ultimo_agg = time.ticks_ms()
+#     grammi = 0.0
+#     while True:
+#         if flag_calibrazione:
+#             print("Richiesta calibrazione ricevuta!")
+#             calibrate(conf['known_weight'])
+#             flag_calibrazione = False
 
-        #         # Invia la chiamata HTTP POST includendo gli headers
-        #         risposta = requests.post(conf['server_url'], json=evento, headers=headers)
-        #         #print(f"Lettura {i+1} inviata! Risposta server: {risposta.status_code}")
+#         if time.ticks_diff(time.ticks_ms(), ultimo_agg) > 600000:
+#             print("Lettura peso...")
+#             grammi = (get_clean_value(10) - offset) / SCALE
+#             print(f"Peso attuale: {grammi:.2f} grammi") 
+#             #if abs(grammi) < 2.0: grammi = 0.0
+#             #evento Ricarica
+#             if grammi<-100:
+#                 print("ciotola rimossa")   
+#             elif grammi-100>peso_precedente:
+#                 evento=True
+#                 print(f"Ricarica: {grammi} grammi")
+#                 evento = {"tipo": "Ricarica",
+#                 "grammi_rimasti_in_ciotola": grammi
+#                 }
+#             # Logica pasto
+#             elif peso_precedente-grammi > 10.0:
+#                 evento=True
+#                 print(f"Pasto: {peso_precedente-grammi} grammi")
+#                 evento = {
+#                 "tipo": "Pasto",
+#                 "grammi_rimasti_in_ciotola": grammi,
+#                 "grammi_consumati": peso_precedente-grammi
+#                 }
+#             if grammi >= -10:
+#                 peso_precedente = grammi
+#             peso_precedente = grammi
+#             ultimo_agg = time.ticks_ms()  
+#         # if evento:
+#         #     try:
+#         #         #print(f"Invio evento al server: {evento}")
+#         #         # Definisci gli header con la chiave d'accesso letta dal config.json
+#         #         headers = {
+#         #             "Content-Type": "application/json",
+#         #             "X-API-Key": conf['api_key']
+#         #         }
+
+#         #         # Invia la chiamata HTTP POST includendo gli headers
+#         #         risposta = requests.post(conf['server_url'], json=evento, headers=headers)
+#         #         #print(f"Lettura {i+1} inviata! Risposta server: {risposta.status_code}")
                 
-        #         # Chiudi la connessione della risposta (consigliato su MicroPython per liberare memoria)
-        #         risposta.close()
+#         #         # Chiudi la connessione della risposta (consigliato su MicroPython per liberare memoria)
+#         #         risposta.close()
 
-        #     except Exception as e:
-        #         print(f"Errore durante l'invio: {e}")
+#         #     except Exception as e:
+#         #         print(f"Errore durante l'invio: {e}")
 
-            evento=False
-        time.sleep(0.1)        
-print("Simulazione completata.")
+#             evento=False
+#         time.sleep(0.1)        
+# print("Simulazione completata.")
