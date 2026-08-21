@@ -43,11 +43,16 @@ def ricevi_dati_sensore(request):
         # 2. (Opzionale) Aggiungiamo un timestamp del server per sicurezza
 
         request_json['ricevuto_il'] = firestore.SERVER_TIMESTAMP
+        oggi_str = datetime.utcnow().strftime('%Y-%m-%d')
 
         # 3. Scrivi il dato su Firestore nella collezione "letture_sensore"
         # .add() genera automaticamente un ID univoco per ogni lettura
         db.collection('eventi').add(request_json)
-        
+
+        if request_json.get('tipo') == 'Ricarica':
+            db.collection('riassunti_giornalieri').document('oggi_str').set({"pasto":True, "totale":firestore.Increment(request_json.get("grammi_delta"),0)},merge=True)
+        elif request_json.get('tipo') == 'Pasto':
+            db.collection('riassunti_giornalieri').document('oggi_str').set({ "totale_mangiato":firestore.Increment(-request_json.get("grammi_delta"),0)},merge=True)
         return ('Dato salvato con successo!', 200, headers)
     except Exception as e:
         print(f"Errore durante il salvataggio: {e}")
