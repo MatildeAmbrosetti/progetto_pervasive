@@ -3,3 +3,4 @@
 dout è impostato al pin 13 
 e il pdsck è impostato al pin 12, la cartella dog va caricata come progetto su esp32 
 3. la google function è stata creata in python e con una variabile ambientale che verrà controllata con una variabile che il sensore invia nell'header della domanda http questo per far si che solo chi ha la password corretta possa scrivere sul firestore e per rendere più leggero al sensore l'invio http 
+4. in credential.json va inserito Il file di credenziali scaricato da Google Cloud e in secret.py vanno inserite le credenziali dell'account 

@@ -4,13 +4,16 @@ import network
 import socket
 import json
 import requests
+import sys
 
 def carica_configurazione():
     try:
         with open('config.json', 'r') as f:
             return json.load(f)
-    except:
+    except Exception as e:
         print("Errore nel caricamento della configurazione.")
+        log_errore(e)
+        time.sleep(2)
         return None
         
 
@@ -53,22 +56,27 @@ def avvia_wifi(ssid, password):
 # --- LOGICA BILANCIA (Funzioni HX711 già testate) ---
 def get_raw():
     timeout = 0
-    while dout.value() and timeout < 500:
+    # Attesa che il sensore sia pronto
+    while dout.value() and timeout < 100:
         time.sleep_ms(1)
         timeout += 1
+    
+    # MODIFICA 1: Se il sensore va in timeout, esce subito ed evita il blocco
+    if timeout >= 100:
+        return 0
+
     raw = 0
-    state = machine.disable_irq()
+    # MODIFICA 2: Rimosso machine.disable_irq() che causava il Watchdog Panic
     for _ in range(24):
         pdsck.value(1)
-        time.sleep_us(1)
         pdsck.value(0)
-        time.sleep_us(1)
         raw = (raw << 1) | dout.value()
+        
     pdsck.value(1)
-    time.sleep_us(1)
     pdsck.value(0)
-    machine.enable_irq(state)
-    if raw & 0x800000: raw -= 0x1000000
+    
+    if raw & 0x800000: 
+        raw -= 0x1000000
     return raw
 
 def get_clean_value(samples=15):
@@ -97,6 +105,15 @@ def calibrate(known_weight_grams):
     time.sleep(2)
     led_di_stato.value(1)
     time.sleep(5)
+
+def log_errore(e):
+    print("!!! ERRORE RILEVATO !!!")
+    try:
+        with open("log_errori.txt", "a") as f:
+            f.write(f"\n[{time.ticks_ms()}] Errore:\n")
+            sys.print_exception(e, f)
+    except:
+        pass
 # --- AVVIO ---
 print("Avvio dello script in corso...")
 conf = carica_configurazione()
@@ -182,6 +199,8 @@ if conf:
                                 risposta.close()
                             except Exception as e:
                                 print(f"Errore invio: {e}")
+                                log_errore(e)
+                                pass
                                 
                         # Aggiorniamo il nuovo punto zero/stabile
                         peso_stabile = peso_istantaneo

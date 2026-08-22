@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rey - Monitoring</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f4f7fb;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 24px;
+            padding: 24px;
+            width: 420px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #1e293b;
+            letter-spacing: 1px;
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="date"] {
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-weight: 600;
+            color: #334155;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #0284c7;
+            object-fit: cover;
+            
+        }
+
+        .chart-container {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin: 0 auto;
+        }
+
+        svg {
+            transform: rotate(-90deg);
+        }
+
+        circle {
+            fill: none;
+            stroke-width: 18;
+            stroke-linecap: round;
+        }
+
+        .bg-circle {
+            stroke: #e2e8f0;
+        }
+
+        .progress-circle {
+            stroke: #0284c7;
+            stroke-dasharray: 628; /* 2 * PI * r (r=100) */
+            stroke-dashoffset: 628;
+            transition: stroke-dashoffset 0.8s ease-in-out;
+        }
+
+        .chart-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .chart-center .icon {
+            font-size: 28px;
+            margin-bottom: 4px;
+        }
+
+        .chart-center .value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .chart-center .label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0284c7;
+        }
+
+        .chart-center .target {
+            font-size: 12px;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .banner {
+            background: #272a30;
+            color: #ffffff;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-top: 30px;
+            font-weight: 600;
+            font-size: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="header">
+        <h1>REY</h1>
+        <div class="controls">
+            <input type="date" id="datePicker" value="{{ today }}" onchange="handleDateChange()">
+            <img src="cane.jpg" class="avatar" alt="Il mio profilo">
+    </div>
+
+    <div class="chart-container">
+        <svg width="260" height="260" viewBox="0 0 240 240">
+            <circle class="bg-circle" cx="120" cy="120" r="100"></circle>
+            <circle class="progress-circle" id="progress" cx="120" cy="120" r="100"></circle>
+        </svg>
+
+        <div class="chart-center">
+            <div class="icon">🐶</div>
+            <div class="value" id="mangiatoVal">0</div>
+            <div class="label">Grammi consumati</div>
+            <div class="target">Versati: <span id="totaleVal">0</span> / Target: <span id="targetVal">450</span> gr</div>
+        </div>
+    </div>
+
+    <div class="banner" id="bannerInfo">
+        Caricamento...
+    </div>
+</div>
+
+<script>
+    const circumference = 2 * Math.PI * 100;
+    let pollingInterval = null;
+
+    function getTodayString() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function setProgress(percent) {
+        const circle = document.getElementById('progress');
+        const offset = circumference - (percent / 100 * circumference);
+        circle.style.strokeDashoffset = offset;
+    }
+
+    function loadData() {
+        const selectedDate = document.getElementById('datePicker').value;
+
+        // Cache buster tramite timestamp per evitare dati vecchi in polling
+        fetch(`/api/dati-giorno?date=${selectedDate}&_=${new Date().getTime()}`)
+            .then(res => res.json())
+            .then(data => {
+                const mangiato = data.totale_mangiato || 0;
+                const target =  450;
+                const totale =  data.totale || 0;
+
+                // Aggiorna valori centrali
+                document.getElementById('mangiatoVal').innerText = mangiato;
+                document.getElementById('targetVal').innerText = target;
+                document.getElementById('totaleVal').innerText = totale;
+
+                // Calcolo percentuale anello (max 100%)
+                const percent = Math.min((mangiato / target) * 100, 100);
+                setProgress(percent);
+
+                // Aggiorna Banner Inferiore
+                const banner = document.getElementById('bannerInfo');
+                if (data.pasto) {
+                    banner.innerText = `Ultimo evento ${data.ultimo_aggiornamento}: ${data.ultimo_evento} `;
+                } else {
+                    banner.innerText = `Nessun pasto registrato per questo giorno`;
+                }
+            })
+            .catch(err => console.error("Errore fetch:", err));
+    }
+
+    function checkPollingState() {
+        const selectedDate = document.getElementById('datePicker').value;
+        const todayStr = getTodayString();
+
+        if (selectedDate === todayStr) {
+            // Se la data è oggi e il polling non è attivo, lo avviamo (ogni 2000 ms)
+            if (!pollingInterval) {
+                pollingInterval = setInterval(loadData, 2000);
+            }
+        } else {
+            // Se la data è passata o futura, fermiamo il polling
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+    }
+
+    function handleDateChange() {
+        loadData();
+        checkPollingState();
+    }
+
+    // Caricamento iniziale
+    loadData();
+    checkPollingState();
+</script>
+
+</body>
+</html>
