@@ -199,7 +199,7 @@
         const selectedDate = document.getElementById('datePicker').value;
 
         // Cache buster tramite timestamp per evitare dati vecchi in polling
-        fetch(`/api/dati-giorno?date=${selectedDate}&_=${new Date().getTime()}`)
+        fetch(`/dati-giorno?date=${selectedDate}&_=${new Date().getTime()}`)
             .then(res => res.json())
             .then(data => {
                 const mangiato = data.totale_mangiato || 0;

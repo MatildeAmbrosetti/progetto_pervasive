@@ -32,7 +32,7 @@ def load_user(username):
         return User(username)
     return None
 
-@app.route('/api/dati-giorno', methods=['GET'])
+@app.route('/dati-giorno', methods=['GET'])
 @login_required
 def get_dati_giorno():
     date_str = request.args.get('date')  # es. "2026-10-15"
