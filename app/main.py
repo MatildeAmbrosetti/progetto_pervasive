@@ -15,9 +15,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = secret_key
 login = LoginManager(app)
 login.login_view = '/static/login.html'
-
 # Inizializzazione del client Firestore
-db = firestore.Client.from_service_account_json('credentials.json')
+db = firestore.Client.from_service_account_json('credential.json')
 
 @login.user_loader
 def load_user(username):
