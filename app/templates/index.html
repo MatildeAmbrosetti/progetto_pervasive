@@ -207,7 +207,7 @@
                 const totale =  data.totale || 0;
 
                 // Aggiorna valori centrali
-                document.getElementById('mangiatoVal').innerText = mangiato;
+                document.getElementById('mangiatoVal').innerText = -1*mangiato;
                 document.getElementById('targetVal').innerText = target;
                 document.getElementById('totaleVal').innerText = totale;
 
@@ -218,7 +218,17 @@
                 // Aggiorna Banner Inferiore
                 const banner = document.getElementById('bannerInfo');
                 if (data.pasto) {
-                    banner.innerText = `Ultimo evento ${data.ultimo_aggiornamento}: ${data.ultimo_evento} `;
+
+    // Il browser riconosce la stringa GMT e la converte all'ora locale dell'utente
+                    const dataLocale = new Date(data.ultimo_aggiornamento).toLocaleString('it-IT', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                    banner.innerText = `Ultimo evento ${dataLocale}: ${data.ultimo_evento} `;
                 } else {
                     banner.innerText = `Nessun pasto registrato per questo giorno`;
                 }
