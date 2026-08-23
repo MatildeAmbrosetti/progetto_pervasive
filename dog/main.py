@@ -156,7 +156,7 @@ if conf:
             ultimo_campione_time = ora
             
             # Lettura rapida
-            peso_istantaneo = ((get_clean_value() - offset) / SCALE) - 249
+            peso_istantaneo = ((get_clean_value() - offset) / SCALE) - conf['peso_ciotola']
             print("peso_istantaneo:", peso_istantaneo)
             
             # 1. Rilevamento rimozione ciotola

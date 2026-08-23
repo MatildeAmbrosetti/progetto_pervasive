@@ -1,3 +1,6 @@
-{"wifi_ssid": "SSID_DEL_TUO_WIFI","wifi_password": "indirizzo del tuo server","known_weight": 1000,
+{"wifi_ssid": "SSID_DEL_TUO_WIFI","wifi_password": "password del wifi",
+"known_weight": 1000,
+"peso_ciotola": 249,
 "server_url": "URL cloud function",
-"api_key": "la tua password segreta", "utente":"utente", "password":"password"}
+"api_key": "la tua password segreta",
+ "utente":"utente", "password":"password"}
