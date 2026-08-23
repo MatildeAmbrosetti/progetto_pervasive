@@ -2,5 +2,6 @@
 2. Configurazioni di sistema del esp32 il pin per il led di stato è il 2 
 dout è impostato al pin 13 e il pdsck è impostato al pin 12. dopo aver effettuato tutto questo è necessario caricare La cartella dog come progetto sull' esp 32.
 3. il micro controllore è pensato perchè si connetta al wifi quando lampeggia il led, faccia la tara quando il led è spento, la calibrazione con il peso fisso a led fisso e la calibrazione finisce dopo 3 led in blink. da quel momento il led rimane sempre acceso e pesa il cibo sulla base.
-3. Per caricare i dati su Firestore è stata creata una google funtion in cloud run indipendente dal flask. La google function è stata creata in python e con una variabile ambientale che verrà controllata. Questa variabile deve essere uguale a quella che il sensore invia nell'header della domanda http questo per far si che solo chi ha la password corretta possa scrivere sul firestore e per rendere più leggero al sensore l'invio http. 
-4. Per l'app flask il nome utente e la password vengono inviati dal microcontrollore alla google function.
+3. Per caricare i dati su Firestore è stata creata una google funtion in cloud run indipendente dal flask. La google function è stata creata in python e con una variabile ambientale che verrà controllata. Questa variabile deve essere uguale a quella che il sensore invia nell'header della domanda http questo per far si che solo chi ha la password corretta possa scrivere sul firestore e per rendere più leggero al sensore l'invio http.
+4. il nome del database su firestore è 'dati'. 
+5. Per l'app flask il nome utente e la password vengono inviati dal microcontrollore alla google function.
