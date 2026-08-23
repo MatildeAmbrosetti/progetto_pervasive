@@ -8,3 +8,4 @@ secret.txt
 .env
 .env.*
 *.env
+app_gcloud.py

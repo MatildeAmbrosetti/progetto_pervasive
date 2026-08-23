@@ -2,7 +2,7 @@ from flask import Flask, request, render_template, redirect, url_for, jsonify
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required, UserMixin
 from google.cloud import firestore
 from datetime import datetime
-from secret import usersdb, secret_key
+from secret import secret_key
 import os
 
 class User(UserMixin):
@@ -24,8 +24,11 @@ CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credential.json')
 # Collega Firestore usando il percorso assoluto
 db = firestore.Client.from_service_account_json(CREDENTIALS_PATH,database='dati')
 @login.user_loader
+@login.user_loader
 def load_user(username):
-    if username in usersdb:
+    doc_ref = db.collection('utenti').document(username)
+    doc = doc_ref.get()
+    if doc.exists:
         return User(username)
     return None
 
@@ -63,16 +66,19 @@ def get_dati_giorno():
 def login():
     if current_user.is_authenticated:
         return redirect(url_for('index'))
-        
     username = request.form.get('u')
     password = request.form.get('p')
-    
-    if username in usersdb and password == usersdb[username]:
-        login_user(User(username), remember=True)
-        next_page = request.args.get('next') or url_for('index')
-        return redirect(next_page)
-        
+    doc_ref = db.collection('utenti').document(username)
+    doc= doc_ref.get()
+    if doc.exists:
+        dati = doc.to_dict()
+        if password == dati.get('password'):
+            login_user(User(username), remember=True)
+            next_page = request.args.get('next') or url_for('index')
+            return redirect(next_page)
+
     return redirect('/static/login.html')
+
 
 @app.route('/logout')
 def logout():

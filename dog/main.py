@@ -132,10 +132,11 @@ if conf:
     SOGLIA_MOVIMENTO = 5.0      # Grammi di variazione per rilevare attività
     SOGLIA_EVENTO = 10.0        # Grammi minimi per considerare Pasto/Ricarica
     TEMPO_STABILITA_MS = 3000   # Tempo in ms in cui il peso deve stare fermo per validare
-    evento = {"tipo": "utente", "utente":conf['utente'],"password": conf['password']}
+    evento1 = {"tipo": "utente", "utente":conf['utente'],"password": conf['password']}
     try:
+        print("invio dati utente")
         headers = {"Content-Type": "application/json", "X-API-Key": conf['api_key']}
-        risposta = requests.post(conf['server_url'], json=evento, headers=headers)
+        risposta = requests.post(conf['server_url'], json=evento1, headers=headers)
         risposta.close()
     except Exception as e:
         print(f"Errore invio: {e}")
