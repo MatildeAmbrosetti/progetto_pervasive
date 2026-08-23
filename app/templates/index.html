@@ -134,6 +134,17 @@
             font-weight: 600;
             font-size: 15px;
         }
+        .logout-btn {
+            color: #ef4444;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            transition: color 0.2s;
+        }
+
+        .logout-btn:hover {
+            color: #dc2626;
+        }
     </style>
 </head>
 <body>
@@ -145,6 +156,7 @@
         <input type="date" id="datePicker" value="{{ today }}" onchange="handleDateChange()">
     </div>
         <img src="/static/cane.jpg" class="avatar" alt="Il mio profilo">
+        <a href="/logout" class="logout-btn">Logout</a>
     </div>
 
     <div class="chart-container">
