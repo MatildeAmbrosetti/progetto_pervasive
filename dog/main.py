@@ -122,10 +122,6 @@ if conf:
     ip_address = avvia_wifi(conf['wifi_ssid'], conf['wifi_password'])
     evento_tag=False
     evento=False
-    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server.bind(('', 80))
-    server.listen(5)
-    server.setblocking(False)
 
     calibrate(conf['known_weight'])
     # --- PARAMETRI DI CAMPIONAMENTO ---
