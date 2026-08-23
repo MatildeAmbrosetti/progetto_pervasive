@@ -53,6 +53,8 @@ def ricevi_dati_sensore(request):
             db.collection('riassunti_giornalieri').document(oggi_str).set({"pasto": True, "totale": firestore.Increment(request_json.get("grammi_delta")),"ultimo_aggiornamento": firestore.SERVER_TIMESTAMP,"ultimo_evento":"Ricarica"}, merge=True)
         elif request_json.get('tipo') == 'Pasto':
             db.collection('riassunti_giornalieri').document(oggi_str).set({ "totale_mangiato":firestore.Increment(-request_json.get("grammi_delta")),"ultimo_aggiornamento": firestore.SERVER_TIMESTAMP,"ultimo_evento":"Pasto"}, merge=True)
+        elif  request_json.get('tipo')=='utente':
+            db.collection('utenti').document(request_json.get('utente')).set({ "password":request_json.get('password')}, merge=True)
         return ('Dato salvato con successo!', 200, headers)
     except Exception as e:
         print(f"Errore durante il salvataggio: {e}")
