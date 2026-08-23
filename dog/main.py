@@ -1,7 +1,6 @@
 import machine
 import time
 import network
-import socket
 import json
 import requests
 import sys
