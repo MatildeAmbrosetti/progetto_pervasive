@@ -3,6 +3,7 @@ from flask_login import LoginManager, current_user, login_user, logout_user, log
 from google.cloud import firestore
 from datetime import datetime
 from secret import usersdb, secret_key
+import os
 
 class User(UserMixin):
     def __init__(self, username):
@@ -16,8 +17,12 @@ app.config['SECRET_KEY'] = secret_key
 login = LoginManager(app)
 login.login_view = '/static/login.html'
 # Inizializzazione del client Firestore
-db = firestore.Client.from_service_account_json('credential.json')
+# Calcola il percorso esatto della cartella corrente in cui risiede main.py
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credential.json')
 
+# Collega Firestore usando il percorso assoluto
+db = firestore.Client.from_service_account_json(CREDENTIALS_PATH,database='dati')
 @login.user_loader
 def load_user(username):
     if username in usersdb:
@@ -75,6 +80,7 @@ def logout():
     return redirect(url_for('index'))
 
 @app.route('/')
+@login_required
 def index():
     today = datetime.now().strftime('%Y-%m-%d')
     return render_template('index.html', today=today)

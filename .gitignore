@@ -2,3 +2,5 @@ config.json
 credential.json
 secret.py
 .vscode/
+__pycache__/
+*.pyc

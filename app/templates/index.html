@@ -24,10 +24,16 @@
         }
 
         .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        }
+
+        .header div {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
+            flex-direction: column;
+            gap: 8px;
         }
 
         .header h1 {
@@ -99,10 +105,7 @@
             text-align: center;
         }
 
-        .chart-center .icon {
-            font-size: 28px;
-            margin-bottom: 4px;
-        }
+   
 
         .chart-center .value {
             font-size: 32px;
@@ -137,10 +140,11 @@
 
 <div class="card">
     <div class="header">
+    <div>
         <h1>REY</h1>
-        <div class="controls">
-            <input type="date" id="datePicker" value="{{ today }}" onchange="handleDateChange()">
-            <img src="cane.jpg" class="avatar" alt="Il mio profilo">
+        <input type="date" id="datePicker" value="{{ today }}" onchange="handleDateChange()">
+    </div>
+        <img src="/static/cane.jpg" class="avatar" alt="Il mio profilo">
     </div>
 
     <div class="chart-container">
@@ -150,7 +154,6 @@
         </svg>
 
         <div class="chart-center">
-            <div class="icon">🐶</div>
             <div class="value" id="mangiatoVal">0</div>
             <div class="label">Grammi consumati</div>
             <div class="target">Versati: <span id="totaleVal">0</span> / Target: <span id="targetVal">450</span> gr</div>
