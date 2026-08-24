@@ -12,25 +12,28 @@ from telegram.ext import (
     filters,
     ContextTypes,
 )
+
 PROJECT_ID = os.environ.get('GOOGLE_CLOUD_PROJECT') or os.environ.get('GCP_PROJECT')
 DATABASE_ID = os.environ.get('FIRESTORE_DATABASE', db_nome)
 
-# Inizializza il client
+# Inizializzazione Firestore standard (eseguiremo le chiamate in modo non bloccante via thread pool)
 db = firestore.Client(project=PROJECT_ID, database=DATABASE_ID)
-#estrae la password dalla configurazione della cloud function 
+
 API_SECRET_KEY = os.environ.get('API_SECRET_KEY')
 TELEGRAM_TOKEN = token_key
+
+# Inizializza l'app Telegram
 telegram_app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
-_bot_initialized = False 
-async def ensure_bot_initialized():
-    global _bot_initialized
-    if not _bot_initialized:
-        await telegram_app.initialize()
-        _bot_initialized = True
+
+# Helper per interrogare Firestore senza bloccare l'event loop
+async def get_firestore_doc(date_str: str):
+    return await asyncio.to_thread(
+        lambda: db.collection('riassunti_giornalieri').document(date_str).get()
+    )
+
 async def rispondi_pasto(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # La data viene calcolata durante l'esecuzione della richiesta
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    doc = db.collection('riassunti_giornalieri').document(date_str).get()
+    doc = await get_firestore_doc(date_str)
     
     if doc.exists:
         data = doc.to_dict()
@@ -41,7 +44,7 @@ async def rispondi_pasto(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def rispondi_dare(update: Update, context: ContextTypes.DEFAULT_TYPE):
     date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    doc = db.collection('riassunti_giornalieri').document(date_str).get()
+    doc = await get_firestore_doc(date_str)
     
     if doc.exists:
         await update.message.reply_text("Hai dato da mangiare a Rey")
@@ -56,6 +59,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "2. Scrivi 'dato' per sapere se hai dato da mangiare a Rey oggi."
     )
     await update.message.reply_text(testo_benvenuto)
+
+# Registrazione degli Handlers
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(MessageHandler(filters.Regex(r'(?i)mangiato'), rispondi_pasto))
 telegram_app.add_handler(MessageHandler(filters.Regex(r'(?i)dato'), rispondi_dare))
@@ -63,18 +68,20 @@ telegram_app.add_handler(MessageHandler(filters.Regex(r'(?i)aggiornamento'), ris
 
 @functions_framework.http
 def bot_webhook(request):
-    if request.method == 'POST':
-        request_json = request.get_json(silent=True)
-        if not request_json:
-            return ('Nessun payload JSON ricevuto', 400)
+    if request.method != 'POST':
+        return ('Metodo non supportato', 405)
 
+    request_json = request.get_json(silent=True)
+    if not request_json:
+        return ('Nessun payload JSON ricevuto', 400)
 
-        async def process():
-            await ensure_bot_initialized()
+    async def main():
+        # Utilizzo del context manager per gestire pulizia sessioni HTTP senza causare eccezioni di loop
+        async with telegram_app:
+            await telegram_app.start()
             update = Update.de_json(request_json, telegram_app.bot)
             await telegram_app.process_update(update)
+            await telegram_app.stop()
 
-        asyncio.run(process())
-        return ('OK', 200)
-    
-    return ('Metodo non supportato', 405)
+    asyncio.run(main())
+    return ('OK', 200)
