@@ -212,7 +212,7 @@
                 document.getElementById('totaleVal').innerText = totale;
 
                 // Calcolo percentuale anello (max 100%)
-                const percent = Math.min((mangiato / target) * 100, 100);
+                const percent = Math.min((-1*mangiato / target) * 100, 100);
                 setProgress(percent);
 
                 // Aggiorna Banner Inferiore
