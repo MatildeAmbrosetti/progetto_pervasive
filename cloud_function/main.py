@@ -14,7 +14,7 @@ API_SECRET_KEY = os.environ.get('API_SECRET_KEY')
 
 @functions_framework.http
 def ricevi_dati_sensore(request):
-    # Gestione del CORS per permettere al sito web (o a Colab) di chiamarla senza blocchi
+    # Gestione del CORS per permettere al sito web di chiamarla senza blocchi
     if request.method == 'OPTIONS':
         headers = {
             'Access-Control-Allow-Origin': '*',
@@ -40,7 +40,7 @@ def ricevi_dati_sensore(request):
 
 #caricamento su Firestore del dato ricevuto dal sensore, con timestamp del server per sicurezza
     try:
-        # 2. (Opzionale) Aggiungiamo un timestamp del server per sicurezza
+
 
         request_json['ricevuto_il'] = firestore.SERVER_TIMESTAMP
         oggi_str = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d')

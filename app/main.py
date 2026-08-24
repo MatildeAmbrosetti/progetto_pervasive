@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, redirect, url_for, jsonify
+from flask import Flask, request, render_template, redirect, url_for, jsonify,session
 from flask_login import LoginManager, current_user, login_user, logout_user, login_required, UserMixin
 from google.cloud import firestore
 from datetime import datetime
@@ -24,8 +24,10 @@ CREDENTIALS_PATH = os.path.join(BASE_DIR, 'credential.json')
 # Collega Firestore usando il percorso assoluto
 db = firestore.Client.from_service_account_json(CREDENTIALS_PATH,database='dati')
 @login.user_loader
-@login.user_loader
 def load_user(username):
+    if session.get('user_id') == username:
+       return User(username)
+
     doc_ref = db.collection('utenti').document(username)
     doc = doc_ref.get()
     if doc.exists:
@@ -73,6 +75,7 @@ def login():
     if doc.exists:
         dati = doc.to_dict()
         if password == dati.get('password'):
+            session['user_id'] = username
             login_user(User(username), remember=True)
             next_page = request.args.get('next') or url_for('index')
             return redirect(next_page)
@@ -82,6 +85,7 @@ def login():
 
 @app.route('/logout')
 def logout():
+    session.clear()
     logout_user()
     return redirect(url_for('index'))
 
