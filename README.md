@@ -23,3 +23,5 @@ Nota: I valori relativi ai pesi per la calibrazione devono essere espressi in gr
    L'invio dei dati al database avviene tramite una Google Cloud Function (sviluppata in Python e distribuita su Cloud Run), indipendente dal server Flask.
    Database: I dati vengono salvati nel database dati su Firestore.
    Autenticazione e Sicurezza:Il microcontrollore invia nell'header della richiesta HTTP una chiave di autenticazione, insieme alle credenziali (username e password).La Cloud Function verifica che la chiave nell'header corrisponda a una variabile d'ambiente configurata al momento della creazione.Questo meccanismo garantisce che solo i dispositivi autorizzati possano scrivere su Firestore.
+
+5. per il deployment del bot è necessario configurare il webhook tramite api di telegram.  
